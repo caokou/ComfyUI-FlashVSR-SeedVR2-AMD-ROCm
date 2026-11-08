@@ -1,0 +1,308 @@
+{
+ "id": "flashvsr_e2",
+ "revision": 0,
+ "last_node_id": 5,
+ "last_link_id": 7,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "LoadVideo",
+   "pos": [
+    40,
+    300
+   ],
+   "size": {
+    "0": 380,
+    "1": 420
+   },
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadVideo"
+   },
+   "widgets_values": [
+    "lipsync_10s.mp4"
+   ],
+   "title": "Load Video"
+  },
+  {
+   "id": 2,
+   "type": "GetVideoComponents",
+   "pos": [
+    470,
+    300
+   ],
+   "size": {
+    "0": 300,
+    "1": 160
+   },
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "GetVideoComponents"
+   },
+   "widgets_values": [],
+   "title": "Get Components"
+  },
+  {
+   "id": 3,
+   "type": "AILab_FlashVSR_Advanced",
+   "pos": [
+    820,
+    260
+   ],
+   "size": {
+    "0": 420,
+    "1": 560
+   },
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "link": 2
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "frames",
+     "type": "IMAGE",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "AILab_FlashVSR_Advanced"
+   },
+   "widgets_values": [
+    "Tiny (Fast)",
+    2,
+    true,
+    256,
+    32,
+    2.0,
+    2.0,
+    11,
+    true,
+    true,
+    true,
+    "disable",
+    "cuda:0",
+    "bf16",
+    42,
+    "fixed"
+   ],
+   "title": "FlashVSR \u00d72 (ROCm: LCSA + LQ-fix)"
+  },
+  {
+   "id": 4,
+   "type": "CreateVideo",
+   "pos": [
+    1300,
+    300
+   ],
+   "size": {
+    "0": 320,
+    "1": 240
+   },
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 4
+    },
+    {
+     "name": "fps",
+     "type": "FLOAT",
+     "link": 6
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "VIDEO",
+     "type": "VIDEO",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CreateVideo"
+   },
+   "widgets_values": [
+    30,
+    "auto",
+    "sRGB",
+    "none"
+   ],
+   "title": "Create Video"
+  },
+  {
+   "id": 5,
+   "type": "SaveVideo",
+   "pos": [
+    1680,
+    300
+   ],
+   "size": {
+    "0": 340,
+    "1": 200
+   },
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "video",
+     "type": "VIDEO",
+     "link": 7
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveVideo"
+   },
+   "widgets_values": [
+    "flashvsr_e2_final",
+    "auto"
+   ],
+   "title": "Save Video"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "VIDEO"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "IMAGE"
+  ],
+  [
+   3,
+   2,
+   1,
+   3,
+   1,
+   "AUDIO"
+  ],
+  [
+   4,
+   3,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ],
+  [
+   5,
+   3,
+   1,
+   4,
+   2,
+   "AUDIO"
+  ],
+  [
+   6,
+   2,
+   2,
+   4,
+   1,
+   "FLOAT"
+  ],
+  [
+   7,
+   4,
+   0,
+   5,
+   0,
+   "VIDEO"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "info": {}
+ },
+ "version": 0.4
+}
