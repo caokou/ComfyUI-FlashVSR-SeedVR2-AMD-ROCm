@@ -13,12 +13,15 @@ lundao1yu0 是专注于 AI 视频/图像工作流实测的频道：真机跑通�
 
 ## 这个仓库是什么
 
-伞形仓库，包含两个 ComfyUI 插件的 AMD ROCm 适配：
+伞形 custom node：**直接 clone 即可用**，已内置两个插件的修复版源码
+（`nodes/flashvsr/`、`nodes/seedvr2_videoupscaler/`），无需安装器、无需打补丁、
+无需 ROCm 环境（NVIDIA 用户 clone 后同样直接获得 LQ 缓存修复）：
 
 - **FlashVSR（主推）** — 3 个模型级修复，首次在 AMD 上达到"可用"级画质
 - **SeedVR2** — ROCm 运行验证 + 全中文注释的节点接口
-- `install_rocm.sh` 一键安装（克隆上游节点 → 自动打全部补丁）
+- `install_rocm.sh` 可选辅助（装验证工作流 / `--models` 下载权重 / ROCm 调优提示）
 - 两个已验证可直接运行的 ComfyUI 工作流（`workflows/`）
+- `patches/` 保留独立补丁脚本，供偏好「克隆上游自行打补丁」的用户使用
 
 ## 核心修复（FlashVSR）
 
@@ -45,14 +48,29 @@ CDNA 数据卡）。详见 `docs/BENCHMARK.md`。
 
 ## 安装
 
+### 方式 A · 直接 clone（推荐，任何平台）
+
 ```bash
-# 前置：ComfyUI（自定义节点目录 custom_nodes/）+ ROCm 6.x + torch rocm 轮子
 cd ComfyUI/custom_nodes
-bash /path/to/install_rocm.sh
+git clone https://github.com/caokou/ComfyUI-FlashVSR-SeedVR2-AMD-ROCm.git
+# 重启 ComfyUI 即可。依赖会从 requirements.txt 自动安装；
+# 分类名: lundao1yu0/⚡FlashVSR 与 lundao1yu0/SEEDVR2
 ```
 
-安装器会：克隆两个上游节点 → 应用全部模型级补丁 → 应用中文注释补丁 →
-把验证过的两个工作流放进 `user/default/workflows/`。全部补丁幂等，可重复执行。
+- NVIDIA / 无 ROCm 用户：clone 即得到全部修复（LQ 缓存修复对全平台有效，
+  ROCm 注意力后端自动按 `torch.version.hip` 门控，不影响 CUDA 路径）
+- 首次运行时 FlashVSR 需下载 `FlashVSR1_1.safetensors`（~5.3GB），
+  SeedVR2 权重由节点自动下载；国内可 `export HF_ENDPOINT=https://hf-mirror.com`
+
+### 方式 B · 可选辅助脚本
+
+```bash
+bash ComfyUI-FlashVSR-SeedVR2-AMD-ROCm/install_rocm.sh           # 装 2 个验证工作流 + ROCm 调优提示
+bash ComfyUI-FlashVSR-SeedVR2-AMD-ROCm/install_rocm.sh --models  # 另外预下载 FlashVSR 权重
+```
+
+不需要 ROCm 环境检测、不克隆上游、不打补丁（源码已 vendor 并修复完毕）。
+想自己维护上游克隆的用户，可单独使用 `patches/` 里的补丁脚本。
 
 ## ROCm 红线（必读）
 
@@ -74,12 +92,14 @@ bash /path/to/install_rocm.sh
 
 ## 致谢与许可
 
-- 上游模型：[OpenImagingLab/FlashVSR](https://github.com/OpenImagingLab/FlashVSR)（含 PR #114 的 ROCm 工作启发）
-- 上游节点：[1038lab/ComfyUI-FlashVSR](https://github.com/1038lab/ComfyUI-FlashVSR)（GPL-3.0）
-- 上游节点：[numz/ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler)
+本仓库 vendor 了两个上游插件的修复版快照（来源、快照时间与本仓库相对上游的
+全部修改清单见 [NOTICE.md](NOTICE.md)）：
 
-本仓库沿续上游 GPL-3.0 许可；全部修复以补丁形式提供并计划回馈上游。
-中文注释补丁（`zh_*.py`）为本仓库新增内容。
+- 上游模型：[OpenImagingLab/FlashVSR](https://github.com/OpenImagingLab/FlashVSR)（含 PR #114 的 ROCm 工作启发，Apache-2.0）
+- 上游节点：[1038lab/ComfyUI-FlashVSR](https://github.com/1038lab/ComfyUI-FlashVSR)（GPL-3.0 → 本仓库整体 GPL-3.0）
+- 上游节点：[numz/ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler)（Apache-2.0）
+
+全部修复计划回馈上游（FlashVSR 的 LQ 缓存 bug 已提 [issue #20](https://github.com/1038lab/ComfyUI-FlashVSR/issues/20)，附完整证据链）。
 
 ---
 

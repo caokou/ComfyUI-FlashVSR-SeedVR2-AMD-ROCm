@@ -1,53 +1,57 @@
 #!/bin/bash
-# lundao1yu0 ROCm VSR suite — one-shot installer (run inside ComfyUI/custom_nodes)
-# Clones upstream nodes, applies all model-level + localization patches, and
-# installs the two verified workflows. Idempotent: safe to re-run.
+# ComfyUI-FlashVSR-SeedVR2-AMD-ROCm — optional post-clone helper.
+#
+# The repo works as a custom node by simply cloning it into
+# ComfyUI/custom_nodes/ (nodes are vendored & patched already; deps are
+# auto-installed from requirements.txt on ComfyUI start). This script is
+# NOT required for that. It only:
+#   1) copies the two verified workflows into user/default/workflows
+#   2) (--models) downloads FlashVSR weights (honors HF_ENDPOINT mirror)
+#   3) prints ROCm (gfx1100) tuning notes
+# Idempotent: safe to re-run. Repo: https://github.com/caokou/ComfyUI-FlashVSR-SeedVR2-AMD-ROCm
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PY="${PYTHON:-python3}"
+WANT_MODELS=0
+[ "${1:-}" = "--models" ] && WANT_MODELS=1
 
-echo "== lundao1yu0 ROCm VSR suite installer =="
+echo "== lundao1yu0 · FlashVSR + SeedVR2 AMD ROCm suite — post-clone helper =="
 
-# ---- 1) upstream nodes ------------------------------------------------------
-if [ ! -d flashvsr ]; then
-  git clone https://github.com/1038lab/ComfyUI-FlashVSR flashvsr
-else
-  echo "[skip] flashvsr already present"
-fi
-if [ ! -d seedvr2_videoupscaler ]; then
-  git clone https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler seedvr2_videoupscaler
-else
-  echo "[skip] seedvr2_videoupscaler already present"
-fi
-
-# ---- 2) model-level patches (FlashVSR) --------------------------------------
-echo "== applying model-level patches =="
-cp "$HERE/patches/rocm_attention.py" /tmp/rocm_attention.py
-# apply_rocm_lcsa_patch.py expects rocm_attention.py next to itself
-( cd "$HERE/patches" && "$PY" apply_rocm_lcsa_patch.py )
-"$PY" "$HERE/patches/fix_lq_cache_order.py"
-
-# ---- 3) branding + Chinese localization -------------------------------------
-echo "== applying branding + Chinese localization =="
-for f in flashvsr/AILab_FlashVSR.py \
-         seedvr2_videoupscaler/src/interfaces/video_upscaler.py \
-         seedvr2_videoupscaler/src/interfaces/dit_model_loader.py \
-         seedvr2_videoupscaler/src/interfaces/vae_model_loader.py; do
-  # category branding: lundao1yu0/...
-  sed -i.bak 's|CATEGORY = "🧪AILab/⚡FlashVSR"|CATEGORY = "lundao1yu0/⚡FlashVSR"|' "$f" 2>/dev/null || true
-  sed -i.bak 's|category="SEEDVR2",|category="lundao1yu0/SEEDVR2",|' "$f" 2>/dev/null || true
-  rm -f "$f.bak"
-done
-"$PY" "$HERE/patches/zh_comments_patch.py" || true
-"$PY" "$HERE/patches/zh_node_desc_patch.py" || true
-"$PY" "$HERE/patches/zh_full_tooltips_patch.py" || true
-"$PY" "$HERE/patches/zh_cleanup_patch.py" || true
-
-# ---- 4) verified workflows ---------------------------------------------------
-WF_DIR="../user/default/workflows"
+# ---- 1) verified workflows ----------------------------------------------------
+WF_DIR="$HERE/../user/default/workflows"
 mkdir -p "$WF_DIR"
 cp "$HERE/workflows/ui_flashvsr_e2.json" "$HERE/workflows/ui_seedvr2_e2.json" "$WF_DIR/"
-echo "[ ok ] workflows installed -> $WF_DIR"
+echo "[ ok ] workflows installed -> $WF_DIR (ui_flashvsr_e2 / ui_seedvr2_e2)"
 
-echo "== done. Restart ComfyUI, then open workflows 'ui_flashvsr_e2' / 'ui_seedvr2_e2'. =="
+# ---- 2) optional: FlashVSR weights -------------------------------------------
+# SeedVR2 weights auto-download on first use (its own download_weight util).
+if [ "$WANT_MODELS" = 1 ]; then
+  echo "== downloading FlashVSR weights (HF_ENDPOINT honored, e.g. https://hf-mirror.com) =="
+  "$PY" - <<'EOF'
+import os
+from huggingface_hub import hf_hub_download
+import folder_paths  # ComfyUI runtime; run this script inside the ComfyUI env if missing
+dst = os.path.join(folder_paths.models_dir, "FlashVSR")
+os.makedirs(dst, exist_ok=True)
+for repo, fn in [("JunhaoZhuang/FlashVSR", "FlashVSR1_1.safetensors")]:
+    p = hf_hub_download(repo_id=repo, filename=fn, local_dir=dst)
+    print("[ ok ]", p)
+EOF
+else
+  echo "[skip] weights: re-run with '--models' to fetch FlashVSR1_1.safetensors (~5.3GB)"
+fi
+
+# ---- 3) ROCm tuning notes ------------------------------------------------------
+echo "== ROCm (gfx1100 / RX 7900 XT) notes =="
+cat <<'EOF'
+  * torch: use the rocm wheel matching your driver (tested: 2.10.0+rocm7.0).
+  * NEVER disable spatial tiling on 20GB RDNA3 cards — VRAM exhaustion freezes
+    the whole machine instead of raising OOM (see docs/BENCHMARK.md).
+  * tile 256 is the measured sweet spot (384 is 52% slower; attention is
+    super-linear in tile size).
+  * TunableOp showed no benefit here (first-run tuning cost); leave it off.
+  * Benchmarks: ROCm 6.4.1 + torch 2.10 = 25.8 s per source-second (544->1088 x2).
+EOF
+
+echo "== done. Restart ComfyUI if it was running during the copy. =="

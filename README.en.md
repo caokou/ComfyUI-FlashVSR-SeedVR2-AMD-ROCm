@@ -15,14 +15,19 @@ AMD ROCm adaptation series, with every fix verified on a Radeon RX 7900 XT.
 
 ## What's in this repo
 
-An umbrella repo with AMD ROCm adaptations of two ComfyUI plugins:
+An umbrella **custom node that works by direct clone** — the patched sources of
+both plugins are vendored inside (`nodes/flashvsr/`, `nodes/seedvr2_videoupscaler/`),
+so there is nothing to install or patch, and no ROCm setup is required
+(NVIDIA users get the LQ-cache fix by cloning too):
 
 - **FlashVSR (flagship)** — 3 model-level fixes bringing AMD quality from
   "unusable" to "production-accepted"
 - **SeedVR2** — verified on ROCm, fully Chinese-localized node interface
-- `install_rocm.sh` one-shot installer (clones upstream nodes → applies all
-  patches automatically)
+- `install_rocm.sh` optional helper (installs verified workflows / `--models`
+  pre-downloads weights / prints ROCm tuning notes)
 - Two ready-to-run verified ComfyUI workflows (`workflows/`)
+- `patches/` keeps standalone patch scripts for users who prefer patching
+  their own upstream clones
 
 ## Core fixes (FlashVSR)
 
@@ -52,15 +57,32 @@ CDNA data-center GPUs). Details in `docs/BENCHMARK.md`.
 
 ## Install
 
+### Option A · Direct clone (recommended, any platform)
+
 ```bash
-# Prerequisites: ComfyUI (custom_nodes/ present) + ROCm 6.x + a torch rocm wheel
 cd ComfyUI/custom_nodes
-bash /path/to/install_rocm.sh
+git clone https://github.com/caokou/ComfyUI-FlashVSR-SeedVR2-AMD-ROCm.git
+# Restart ComfyUI. Dependencies auto-install from requirements.txt.
+# Categories: lundao1yu0/⚡FlashVSR and lundao1yu0/SEEDVR2
 ```
 
-The installer: clones both upstream nodes → applies all model-level patches →
-applies the Chinese-localization patches → drops the two verified workflows
-into `user/default/workflows/`. All patches are idempotent.
+- NVIDIA / no-ROCm users: cloning gives you all fixes (the LQ-cache fix is
+  platform-independent; the ROCm attention backend is gated by
+  `torch.version.hip` and never touches the CUDA path)
+- First run downloads `FlashVSR1_1.safetensors` (~5.3GB); SeedVR2 weights
+  auto-download via the node itself. Set `HF_ENDPOINT=https://hf-mirror.com`
+  if GitHub/HuggingFace direct access is slow.
+
+### Option B · Optional helper script
+
+```bash
+bash ComfyUI-FlashVSR-SeedVR2-AMD-ROCm/install_rocm.sh           # install 2 verified workflows + ROCm notes
+bash ComfyUI-FlashVSR-SeedVR2-AMD-ROCm/install_rocm.sh --models  # also pre-download FlashVSR weights
+```
+
+It no longer clones upstream or patches anything (sources are vendored and
+already fixed). Users maintaining their own upstream clones can apply
+`patches/` standalone.
 
 ## ROCm hard rules (read this first)
 
@@ -84,13 +106,16 @@ Both verified to run directly from the ComfyUI UI on the reference machine.
 
 ## Acknowledgements & License
 
-- Upstream model: [OpenImagingLab/FlashVSR](https://github.com/OpenImagingLab/FlashVSR) (ROCm work inspired by PR #114)
-- Upstream node: [1038lab/ComfyUI-FlashVSR](https://github.com/1038lab/ComfyUI-FlashVSR) (GPL-3.0)
-- Upstream node: [numz/ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler)
+This repo vendors patched snapshots of two upstream plugins (provenance and
+the full list of changes relative to upstream: [NOTICE.md](NOTICE.md)):
 
-This repo continues the upstream GPL-3.0 license; all fixes are provided as
-patches and are being contributed back upstream. The Chinese-localization
-patches (`zh_*.py`) are new content added by this repo.
+- Upstream model: [OpenImagingLab/FlashVSR](https://github.com/OpenImagingLab/FlashVSR) (ROCm work inspired by PR #114, Apache-2.0)
+- Upstream node: [1038lab/ComfyUI-FlashVSR](https://github.com/1038lab/ComfyUI-FlashVSR) (GPL-3.0 → this repo is GPL-3.0 overall)
+- Upstream node: [numz/ComfyUI-SeedVR2_VideoUpscaler](https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler) (Apache-2.0)
+
+All fixes are being contributed back upstream (the FlashVSR LQ-cache bug is
+filed as [issue #20](https://github.com/1038lab/ComfyUI-FlashVSR/issues/20)
+with the full evidence chain).
 
 ---
 
